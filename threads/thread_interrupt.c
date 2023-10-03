@@ -20,7 +20,7 @@ static void *mythread(void *arg) {
     
     pthread_cleanup_push(cleanup_handler, hello_string);
 
-    int count = 0;
+    // int count = 0;
     while (1) {
         // printf("Hello from mythread!\n");
         // pthread_testcancel();   
@@ -41,7 +41,7 @@ int main() {
 
     err = pthread_create(&tid, NULL, mythread, NULL);
     if (err) {
-        printf("main: pthread_create() failed: %s\n", strerror(err));
+        printf("main(): pthread_create() failed: %s\n", strerror(err));
         return -1;
     }
     sleep(1);

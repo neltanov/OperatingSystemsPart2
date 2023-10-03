@@ -1,5 +1,5 @@
-TARGET = thread-example
-SRCS = thread.c
+TARGET = executable
+SRCS = sig_handling.c
 
 CC=gcc
 RM=rm
