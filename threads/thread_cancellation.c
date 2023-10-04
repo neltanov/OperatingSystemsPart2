@@ -20,11 +20,11 @@ static void *mythread(void *arg) {
     
     pthread_cleanup_push(cleanup_handler, hello_string);
 
-    // int count = 0;
+    int count = 0;
     while (1) {
         // printf("Hello from mythread!\n");
-        // pthread_testcancel();   
-        // count++;
+        pthread_testcancel();
+        count++;
         printf("%s\n", hello_string);
     }
 
