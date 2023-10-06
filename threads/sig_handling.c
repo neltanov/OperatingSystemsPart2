@@ -23,6 +23,8 @@ void *mythread1(void *arg) {
         return NULL;
     }
 
+    for (;;) {}
+
     return NULL;
 }
 
@@ -38,6 +40,15 @@ void *mythread2(void *arg) {
     struct sigaction sa;
     sa.sa_flags = 0;
 
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGINT);
+    err = pthread_sigmask(SIG_UNBLOCK, &set, NULL);
+    if (err) {
+        perror("mythread2(): pthread_sigmask() failed");
+        return NULL;
+    }
+
     sigfillset(&sa.sa_mask);
     sigdelset(&sa.sa_mask, SIGINT);
 
@@ -49,6 +60,7 @@ void *mythread2(void *arg) {
         return NULL;
     }
 
+    for (;;) {}
     return NULL;
 }
 
@@ -82,13 +94,6 @@ int main() {
     sigset_t set;
     sigfillset(&set);
     err = pthread_sigmask(SIG_BLOCK, &set, NULL);
-    if (err) {
-        perror("main(): pthread_sigmask() failed");
-        return 1;
-    }
-    sigemptyset(&set);
-    sigaddset(&set, SIGINT);
-    err = pthread_sigmask(SIG_UNBLOCK, &set, NULL);
     if (err) {
         perror("main(): pthread_sigmask() failed");
         return 1;

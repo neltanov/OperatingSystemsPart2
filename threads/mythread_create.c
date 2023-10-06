@@ -10,7 +10,7 @@ typedef struct _mythread {
 	void*			retval;
 	volatile int	joined;
 	volatile int	exited;
-} _mythread_struct_t;
+} mythread_struct_t;
 
 
 int mythread_startup(void *arg) {
@@ -70,7 +70,7 @@ int mythread_join(mythread_t mytid, void **retval) {
 	return 0;
 }
 
-void *mythread(arg) {
+void *mythread(void *arg) {
     char *str = (char *) arg;
 
     for (int i = 0; i < 5; i++)  {
