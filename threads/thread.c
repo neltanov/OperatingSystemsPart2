@@ -20,6 +20,7 @@ void *mythread(void *arg) {
         global_var = gettid();
     }
     printf("new global: %d\n", global_var);
+    pthread_detach(pthread_self());
     return NULL;
 }
 
@@ -29,25 +30,32 @@ int main() {
 
 	printf("main [%d %d %d]: Hello from main!\n", getpid(), getppid(), gettid());
 
-    for (int i = 0; i < THREAD_COUNT; i++) {
-        err = pthread_create(&tids[i], NULL, mythread, NULL);
-        printf("Value from first arg: %ld\n", tids[i]);
-        if (err) {
-            printf("main: pthread_create() failed: %s\n", strerror(err));
-            return -1;
-        }
+    // for (int i = 0; i < THREAD_COUNT; i++) {
+    //     err = pthread_create(&tids[i], NULL, mythread, NULL);
+    //     printf("Value from first arg: %ld\n", tids[i]);
+    //     if (err) {
+    //         printf("main: pthread_create() failed: %s\n", strerror(err));
+    //         return -1;
+    //     }
+    // }
+    void *retval;
+    err = pthread_create(&tids[0], NULL, mythread, NULL);
+    pthread_detach(tids[0]);
+    err = pthread_join(tids[0], &retval);
+    printf("%d\n", err);
+    if (err) {
+        perror("error pthread join");
+        return -1;
     }
     
-    for (int i = 0; i < THREAD_COUNT; i++) {
-        err = pthread_join(tids[i], NULL);
-        if (err) {
-            perror("error pthread join");
-            return -1;
-        }
-    }
+    // for (int i = 0; i < THREAD_COUNT; i++) {
+    //     err = pthread_join(tids[i], NULL);
+    //     if (err) {
+    //         perror("error pthread join");
+    //         return -1;
+    //     }
+    // }
     
-    sleep(1000);
-
 	return 0;
 }
 

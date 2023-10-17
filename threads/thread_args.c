@@ -15,7 +15,6 @@ typedef struct my_struct_t {
 
 void *mythread(void *arg) {
     printf("mythread [%d %d %d %lu]: Hello from mythread!\n", getpid(), getppid(), gettid(), pthread_self());
-    sleep(2);
     printf("mythread [%d %d %d %lu]: Hello from mythread!\n", getpid(), getppid(), gettid(), pthread_self());
     
     my_struct_t *my_struct_p = (my_struct_t *) arg;
@@ -38,10 +37,10 @@ int main() {
     my_struct_p->a = 12;
     my_struct_p->str = "hi";
 
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    err = pthread_create(&tid, &attr, mythread, my_struct_p);
+    // pthread_attr_t attr;
+    // pthread_attr_init(&attr);
+    // pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    err = pthread_create(&tid, NULL/* &attr */, mythread, my_struct_p);
     if (err) {
         printf("main: pthread_create() failed: %s\n", strerror(err));
         free(my_struct_p);
@@ -51,7 +50,7 @@ int main() {
 
     // pthread_attr_destroy(&attr);
     // if (my_struct_p) {
-    //     free(my_struct_p);
+    //     // free(my_struct_p);
     //     my_struct_p = NULL;
     // }
     // err = pthread_join(tid, NULL);
@@ -60,7 +59,7 @@ int main() {
     //     return -1;
     // }
 
-    sleep(1);
+    sleep(100);
 
 	return 0;
 }

@@ -10,6 +10,7 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <signal.h>
+#include <ucontext.h>
 
 #define PAGE 4096
 #define STACK_SIZE 3*PAGE
@@ -22,32 +23,42 @@ typedef struct _mythread {
 	void*			arg;
 	void*			retval;
 	volatile int	joined;
+	volatile int 	detached;
 	volatile int	finished;
+	volatile int	cancelled;
+	ucontext_t 		uctx;
+
 } mythread_struct_t;
 
 typedef mythread_struct_t* mythread_t;
 
+mythread_t gtid;
+
 int mythread_startup(void *arg) {
 	mythread_struct_t *mythread = (mythread_struct_t *) arg;
 
-	mythread->retval = mythread->start_routine(mythread->arg);
+	getcontext(&(mythread->uctx));
+	if (!mythread->cancelled) {
+		mythread->retval = mythread->start_routine(mythread->arg);
+	}
 	mythread->finished = 1;
 
-	// TODO change to futex
-	while (!mythread->joined) {
-		sleep(1);
+	if (!mythread->detached) {
+		while (!mythread->joined) {
+			sleep(1);
+		}
 	}
 	
 	return 0;
 }
 
 
-void *create_stack(off_t size, int mytid) {
+void *create_stack(off_t size, int tid) {
 	char stack_file[128];
 	int stack_fd;
 	void *stack;
 
-	snprintf(stack_file, sizeof(stack_file), "stack-%d", mytid);
+	snprintf(stack_file, sizeof(stack_file), "stack-%d", tid);
 
 	stack_fd = open(stack_file, O_RDWR | O_CREAT, 0660);
 	ftruncate(stack_fd, 0);
@@ -59,7 +70,7 @@ void *create_stack(off_t size, int mytid) {
 	return stack;
 }
 
-int mythread_create(mythread_t *mytid, void *(*start_routine)(void *), void *arg) {
+int mythread_create(mythread_t *tid, void *(*start_routine)(void *), void *arg) {
     static int mythread_id = 0;
 	mythread_struct_t *mythread;
 	int child_pid;
@@ -80,8 +91,12 @@ int mythread_create(mythread_t *mytid, void *(*start_routine)(void *), void *arg
 	mythread->start_routine = start_routine;
 	mythread->arg = arg;
 	mythread->retval = NULL;
-	mythread->finished = 0;
 	mythread->joined = 0;
+	mythread->detached = 0;
+	mythread->finished = 0;
+	mythread->cancelled = 0;
+
+	gtid = mythread;
 
 	child_stack = (void *) mythread;
 
@@ -95,14 +110,18 @@ int mythread_create(mythread_t *mytid, void *(*start_routine)(void *), void *arg
 		exit(-1);
 	}
 
-	*mytid = mythread;
+	*tid = mythread;
 
 	return 0;
 }
 
-int mythread_join(mythread_t mytid, void **retval) {
-	mythread_struct_t *mythread = mytid;
+int mythread_join(mythread_t tid, void **retval) {
+	mythread_struct_t *mythread = tid;
 	
+	if (mythread->detached) {
+		*retval = NULL;
+		return 22;
+	}
 	printf("thread_join: waiting for the thread %d to finish\n", mythread->mythread_id);
 
 	while (!mythread->finished)
@@ -110,10 +129,37 @@ int mythread_join(mythread_t mytid, void **retval) {
 
 	printf("thread_join: the thread %d finished\n", mythread->mythread_id);
 
-	*retval = mythread->retval;
+	if (retval) {
+		*retval = mythread->retval;
+	}
 	mythread->joined = 1;
 
 	return 0;
+}
+
+int mythread_detach(mythread_t tid) {
+	mythread_struct_t *mythread = tid;
+
+	mythread->detached = 1;
+
+	return 0;
+}
+
+int mythread_cancel(mythread_t tid) {
+	mythread_struct_t *mythread = tid;
+
+	mythread->retval = "MYTHREAD_CANCELLED";
+	mythread->cancelled = 1;
+	
+	return 0;
+}
+
+void mythread_testcancel() {
+	mythread_struct_t *mythread;
+	mythread = gtid;
+	if (mythread->cancelled) {
+		setcontext(&(mythread->uctx));
+	}
 }
 
 void *mythread(void *arg) {
@@ -122,21 +168,29 @@ void *mythread(void *arg) {
     for (int i = 0; i < 5; i++)  {
         printf("Hello %s\n", str);
         sleep(1);
+		mythread_testcancel();
     }
-
+	// mythread_detach(gtid);
 	return "gbye";
 }
 
 
 int main() {
-    mythread_t mytid;
+    mythread_t tid;
 	void *retval;
 
 	printf("main [%d %d %d]\n", getpid(), getppid(), gettid());
 
-    mythread_create(&mytid, mythread, "hello from main");
+    mythread_create(&tid, mythread, "hello from main");
+	
+	// sleep(3);
+	// mythread_cancel(tid);
+	mythread_detach(tid);
 
-    mythread_join(mytid, &retval);
+    int err = mythread_join(tid, &retval);
+	if (err != 0) {
+		printf("Error. Error code: %d\n", err);
+	}
 
 	printf("main [%d %d %d] thread returned '%s'\n", getpid(), getppid(), gettid(), (char *) retval);
 
