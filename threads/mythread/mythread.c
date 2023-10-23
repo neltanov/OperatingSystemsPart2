@@ -1,40 +1,11 @@
-#define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sched.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <string.h>
-#include <signal.h>
-#include <ucontext.h>
+#include "mythread.h"
 
 #define PAGE 4096
 #define STACK_SIZE 3*PAGE
 
-typedef void *(*start_routine_t)(void *);
+// mythread_t gtid;
 
-typedef struct _mythread {
-	int				mythread_id;
-	start_routine_t	start_routine;
-	void*			arg;
-	void*			retval;
-	volatile int	joined;
-	volatile int 	detached;
-	volatile int	finished;
-	volatile int	cancelled;
-	ucontext_t 		uctx;
-
-} mythread_struct_t;
-
-typedef mythread_struct_t* mythread_t;
-
-mythread_t gtid;
-
-int mythread_startup(void *arg) {
+static int mythread_startup(void *arg) {
 	mythread_struct_t *mythread = (mythread_struct_t *) arg;
 
 	getcontext(&(mythread->uctx));
@@ -53,19 +24,36 @@ int mythread_startup(void *arg) {
 }
 
 
-void *create_stack(off_t size, int tid) {
+static void *create_stack(off_t size, int tid) {
 	char stack_file[128];
 	int stack_fd;
 	void *stack;
+	int err_code;
 
-	snprintf(stack_file, sizeof(stack_file), "stack-%d", tid);
+	err_code = snprintf(stack_file, sizeof(stack_file), "stack-%d", tid);
+	if (err_code < 0) {
+		printf("create_stack(): output error in snprintf()");
+	}
 
 	stack_fd = open(stack_file, O_RDWR | O_CREAT, 0660);
+	if (stack_fd == -1) {
+		perror("create_stack(): stack file opening error");
+		exit(EXIT_FAILURE);
+	}
+
 	ftruncate(stack_fd, 0);
 	ftruncate(stack_fd, size);
 
 	stack = mmap(NULL, size, PROT_NONE, MAP_SHARED, stack_fd, 0);
-	close(stack_fd);
+	if (stack == MAP_FAILED) {
+		perror("create_stack(): mmap failed");
+		exit(EXIT_FAILURE);
+	}
+
+	err_code = close(stack_fd);
+	if (err_code == -1) {
+		perror("create_stack(): close stack file error");
+	}
 
 	return stack;
 }
@@ -96,11 +84,11 @@ int mythread_create(mythread_t *tid, void *(*start_routine)(void *), void *arg) 
 	mythread->finished = 0;
 	mythread->cancelled = 0;
 
-	gtid = mythread;
+	// gtid = mythread;
 
 	child_stack = (void *) mythread;
 
-	printf("child stack %p; mythread_struct %p; \n", child_stack, mythread);
+	// printf("child stack %p; mythread_struct %p; \n", child_stack, mythread);
 
 	child_pid = clone(mythread_startup, child_stack, 
 				CLONE_VM | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD | SIGCHLD, 
@@ -155,44 +143,11 @@ int mythread_cancel(mythread_t tid) {
 }
 
 void mythread_testcancel() {
-	mythread_struct_t *mythread;
-	mythread = gtid;
-	if (mythread->cancelled) {
-		setcontext(&(mythread->uctx));
-	}
-}
-
-void *mythread(void *arg) {
-    char *str = (char *) arg;
-
-    for (int i = 0; i < 5; i++)  {
-        printf("Hello %s\n", str);
-        sleep(1);
-		mythread_testcancel();
-    }
-	// mythread_detach(gtid);
-	return "gbye";
-}
-
-
-int main() {
-    mythread_t tid;
-	void *retval;
-
-	printf("main [%d %d %d]\n", getpid(), getppid(), gettid());
-
-    mythread_create(&tid, mythread, "hello from main");
 	
-	// sleep(3);
-	// mythread_cancel(tid);
-	mythread_detach(tid);
-
-    int err = mythread_join(tid, &retval);
-	if (err != 0) {
-		printf("Error. Error code: %d\n", err);
-	}
-
-	printf("main [%d %d %d] thread returned '%s'\n", getpid(), getppid(), gettid(), (char *) retval);
-
-	return 0;
+	// mythread_struct_t *mythread;
+	// mythread = gtid;
+	// if (mythread->cancelled) {
+	// 	setcontext(&(mythread->uctx));
+	// }
 }
+
