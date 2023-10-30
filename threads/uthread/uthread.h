@@ -15,10 +15,12 @@
 #include <signal.h>
 #include <ucontext.h>
 
+#define MAX_THREADS 10
+
 typedef void *(*start_routine_t)(void *);
 
-typedef struct _mythread {
-	int				mythread_id;
+typedef struct _uthread {
+	int				uthread_id;
 	start_routine_t	start_routine;
 	void*			arg;
 	void*			retval;
@@ -27,18 +29,22 @@ typedef struct _mythread {
 	volatile int	finished;
 	volatile int	cancelled;
 	ucontext_t 		uctx;
+} uthread_struct_t;
 
-} mythread_struct_t;
+typedef uthread_struct_t* uthread_t;
 
-typedef mythread_struct_t* mythread_t;
+uthread_t uthreads[MAX_THREADS];
+int uthread_count = 0;
+int uthread_cur = 0;
 
 // __thread mythread_t current_thread;
 
-int mythread_create(mythread_t *tid, void *(*start_routine)(void *), void *arg);
-int mythread_join(mythread_t tid, void **retval);
-int mythread_detach(mythread_t tid);
-int mythread_cancel(mythread_t tid);
-void mythread_testcancel();
+int uthread_create(uthread_t *tid, void *(*start_routine)(void *), void *arg);
+int uthread_join(uthread_t tid, void **retval);
+int uthread_detach(uthread_t tid);
+int uthread_cancel(uthread_t tid);
+void uthread_testcancel();
+void schedule();
 
 
 #endif // MYTHREAD_H

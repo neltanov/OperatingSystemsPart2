@@ -3,8 +3,6 @@
 #define PAGE 4096
 #define STACK_SIZE 3*PAGE
 
-// mythread_t gtid;
-
 static int mythread_startup(void *arg) {
 	mythread_struct_t *mythread = (mythread_struct_t *) arg;
 
@@ -38,7 +36,7 @@ static void *create_stack(off_t size, int tid) {
 	stack_fd = open(stack_file, O_RDWR | O_CREAT, 0660);
 	if (stack_fd == -1) {
 		perror("create_stack(): stack file opening error");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 
 	ftruncate(stack_fd, 0);
@@ -46,8 +44,9 @@ static void *create_stack(off_t size, int tid) {
 
 	stack = mmap(NULL, size, PROT_NONE, MAP_SHARED, stack_fd, 0);
 	if (stack == MAP_FAILED) {
+		close(stack_fd);
 		perror("create_stack(): mmap failed");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 
 	err_code = close(stack_fd);
@@ -69,6 +68,10 @@ int mythread_create(mythread_t *tid, void *(*start_routine)(void *), void *arg) 
 	printf("mythread_create: creating thread %d\n", mythread_id);
 
 	child_stack = create_stack(STACK_SIZE, mythread_id);
+	if (!child_stack) {
+		printf("errror");
+		return 1;
+	}
 
 	mprotect(child_stack + PAGE, STACK_SIZE - PAGE, PROT_READ | PROT_WRITE);
 
@@ -84,18 +87,18 @@ int mythread_create(mythread_t *tid, void *(*start_routine)(void *), void *arg) 
 	mythread->finished = 0;
 	mythread->cancelled = 0;
 
-	// gtid = mythread;
+	// current_thread = mythread;
 
 	child_stack = (void *) mythread;
 
 	// printf("child stack %p; mythread_struct %p; \n", child_stack, mythread);
 
 	child_pid = clone(mythread_startup, child_stack, 
-				CLONE_VM | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD | SIGCHLD, 
+				CLONE_VM | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD | SIGCHLD /* | CLONE_SETTLS */, 
 				mythread);
 	if (child_pid == -1) {
 		printf("clone failed: %s\n", strerror(errno));
-		exit(-1);
+		return 1;
 	}
 
 	*tid = mythread;
@@ -127,25 +130,23 @@ int mythread_join(mythread_t tid, void **retval) {
 
 int mythread_detach(mythread_t tid) {
 	mythread_struct_t *mythread = tid;
-
 	mythread->detached = 1;
-
 	return 0;
 }
 
 int mythread_cancel(mythread_t tid) {
 	mythread_struct_t *mythread = tid;
-
 	mythread->retval = "MYTHREAD_CANCELLED";
 	mythread->cancelled = 1;
-	
+	printf("Cancellation request to thread %d is sent\n", mythread->mythread_id);
 	return 0;
 }
 
 void mythread_testcancel() {
-	
 	// mythread_struct_t *mythread;
-	// mythread = gtid;
+	// mythread = current_thread;
+	
+	// printf("thread %d: mythread->cancelled = %d\n", mythread->mythread_id, mythread->cancelled);
 	// if (mythread->cancelled) {
 	// 	setcontext(&(mythread->uctx));
 	// }

@@ -41,12 +41,12 @@ int main() {
     void *retval;
     err = pthread_create(&tids[0], NULL, mythread, NULL);
     pthread_detach(tids[0]);
-    err = pthread_join(tids[0], &retval);
-    printf("%d\n", err);
-    if (err) {
-        perror("error pthread join");
-        return -1;
-    }
+    // err = pthread_join(tids[0], &retval);
+    // printf("%d\n", err);
+    // if (err) {
+    //     perror("error pthread join");
+    //     return -1;
+    // }
     
     // for (int i = 0; i < THREAD_COUNT; i++) {
     //     err = pthread_join(tids[i], NULL);
