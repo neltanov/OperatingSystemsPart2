@@ -6,20 +6,20 @@
 
 void schedule() {
 	int err;
-	ucontext_t *cur_ctx, *next_ctx;
+	ucontext_t *current_ctx, *next_ctx;
 
-	cur_ctx = &(uthreads[uthread_cur]->uctx);
+	current_ctx = &(uthreads[uthread_cur]->uctx);
 	uthread_cur = (uthread_cur + 1) % uthread_count;
 	next_ctx = &(uthreads[uthread_cur]->uctx);
 
-	err = swapcontext(cur_ctx, next_ctx);
+	err = swapcontext(current_ctx, next_ctx);
 	if (err == -1) {
 		printf("schedule(): swapcontext() failed: %s\n", strerror(errno));
 		return;
 	}
 }
 
-void mythread_startup(/* void *arg */) {
+void uthread_startup(/* void *arg */) {
 	int i;
 	ucontext_t *ctx;
 	
@@ -97,9 +97,7 @@ int uthread_create(uthread_t *tid, void *(*start_routine)(void *), void *arg) {
 	uthread->arg = arg;
 	uthread->retval = NULL;
 	uthread->joined = 0;
-	uthread->detached = 0;
 	uthread->finished = 0;
-	uthread->cancelled = 0;
 
 	err = getcontext(&uthread->uctx);
 	if (err == -1) {
@@ -110,7 +108,7 @@ int uthread_create(uthread_t *tid, void *(*start_routine)(void *), void *arg) {
 	uthread->uctx.uc_stack.ss_size = STACK_SIZE - sizeof(uthread_struct_t);
 	uthread->uctx.uc_link = NULL;
 
-	makecontext(&uthread->uctx, mythread_startup, 0);
+	makecontext(&uthread->uctx, uthread_startup, 0);
 
 	uthreads[uthread_count] = uthread;
 	uthread_count++;
@@ -123,10 +121,6 @@ int uthread_create(uthread_t *tid, void *(*start_routine)(void *), void *arg) {
 int uthread_join(uthread_t tid, void **retval) {
 	uthread_struct_t *mythread = tid;
 	
-	if (mythread->detached) {
-		*retval = NULL;
-		return 22;
-	}
 	printf("uthread_join(): waiting for the thread %d to finish\n", mythread->uthread_id);
 
 	while (!mythread->finished)
@@ -140,29 +134,5 @@ int uthread_join(uthread_t tid, void **retval) {
 	mythread->joined = 1;
 
 	return 0;
-}
-
-int uthread_detach(uthread_t tid) {
-	uthread_struct_t *mythread = tid;
-	mythread->detached = 1;
-	return 0;
-}
-
-int uthread_cancel(uthread_t tid) {
-	uthread_struct_t *mythread = tid;
-	mythread->retval = "MYTHREAD_CANCELLED";
-	mythread->cancelled = 1;
-	printf("Cancellation request to thread %d is sent\n", mythread->uthread_id);
-	return 0;
-}
-
-void uthread_testcancel() {
-	// mythread_struct_t *mythread;
-	// mythread = current_thread;
-	
-	// printf("thread %d: mythread->cancelled = %d\n", mythread->uthread_id, mythread->cancelled);
-	// if (mythread->cancelled) {
-	// 	setcontext(&(mythread->uctx));
-	// }
 }
 

@@ -25,9 +25,7 @@ typedef struct _uthread {
 	void*			arg;
 	void*			retval;
 	volatile int	joined;
-	volatile int 	detached;
 	volatile int	finished;
-	volatile int	cancelled;
 	ucontext_t 		uctx;
 } uthread_struct_t;
 
@@ -41,9 +39,6 @@ int uthread_cur = 0;
 
 int uthread_create(uthread_t *tid, void *(*start_routine)(void *), void *arg);
 int uthread_join(uthread_t tid, void **retval);
-int uthread_detach(uthread_t tid);
-int uthread_cancel(uthread_t tid);
-void uthread_testcancel();
 void schedule();
 
 

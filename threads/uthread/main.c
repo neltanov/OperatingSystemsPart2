@@ -4,7 +4,7 @@
 void *uthread1(void *arg) {
     char *str = (char *) arg;
 
-    for (int i = 0; i < 5; i++)  {
+    for (int i = 0; i < 3; i++)  {
         printf("uthread1 | %s. Thread function address: %p\n", str, uthread1);
         sleep(1);
 		schedule();
@@ -15,7 +15,7 @@ void *uthread1(void *arg) {
 void *uthread2(void *arg) {
     char *str = (char *) arg;
 
-    for (int i = 0; i < 5; i++)  {
+    for (int i = 0; i < 3; i++)  {
         printf("uthread2 | %s. Thread function address: %p\n", str, uthread2);
         sleep(1);
 		schedule();
@@ -26,7 +26,7 @@ void *uthread2(void *arg) {
 void *uthread3(void *arg) {
     char *str = (char *) arg;
 
-    for (int i = 0; i < 5; i++)  {
+    for (int i = 0; i < 3; i++)  {
         printf("uthread3 | %s. Thread function address: %p\n", str, uthread3);
         sleep(1);
 		schedule();
@@ -43,9 +43,9 @@ int main() {
 
 	printf("main [%d %d]\n", getpid(), getppid());
 
-	uthread_create(&tids[0], uthread1, "hello from main");
-	uthread_create(&tids[1], uthread2, "hello from main");
-	uthread_create(&tids[2], uthread3, "hello from main");
+	uthread_create(&tids[0], uthread1, "hello from main to thread1");
+	uthread_create(&tids[1], uthread2, "hello from main to thread2");
+	uthread_create(&tids[2], uthread3, "hello from main to thread3");
 
 	while (1) {
 		schedule();
