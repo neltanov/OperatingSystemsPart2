@@ -44,7 +44,31 @@ queue_t* queue_init(int max_count) {
 }
 
 void queue_destroy(queue_t *q) {
-	// TODO: It's needed to implement this function
+	if (!q) {
+		return;
+	}
+	int err;
+
+	qnode_t *tmp;
+	while (q->first) {
+		tmp = q->first;
+		q->first = q->first->next;
+		free(tmp);
+	}
+
+	err = pthread_cancel(q->qmonitor_tid);
+	if (err) {
+		printf("queue_destroy: pthread_cancel() failed: %s\n", strerror(err));
+		abort();
+	}
+
+	err = pthread_join(q->qmonitor_tid, NULL);
+	if (err) {
+		printf("queue_destroy: pthread_join() failed: %s\n", strerror(err));
+		abort();
+	}
+
+	free(q);
 }
 
 int queue_add(queue_t *q, int val) {
