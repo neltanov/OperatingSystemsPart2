@@ -15,7 +15,7 @@ int main() {
 
 	printf("main: [%d %d %d]\n", getpid(), getppid(), gettid());
 
-	q = queue_init(1000);
+	q = queue_init(1000000);
 
 	for (int i = 0; i < 10; i++) {
 		int ok = queue_add(q, i);
