@@ -26,10 +26,10 @@ int main() {
 
     while (1) {
         sleep(1);
-        printf("asc string %llu\n", atomic_load(&list_storage->increasing_iter_counter));
-        printf("desc strings %llu\n", atomic_load(&list_storage->increasing_iter_counter));
-        printf("equal strings: %llu\n", atomic_load(&list_storage->increasing_iter_counter));
-        printf("swaps: %llu\n", atomic_load(&list_storage->swap_iter_counter));
+        printf("asc string %llu\n", atomic_load(&list_storage->asc_order_count));
+        printf("desc strings %llu\n", atomic_load(&list_storage->asc_order_count));
+        printf("equal strings: %llu\n", atomic_load(&list_storage->asc_order_count));
+        printf("swaps: %llu\n", atomic_load(&list_storage->swaps_count));
         printf("\n");
     }
 

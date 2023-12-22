@@ -20,10 +20,10 @@ typedef struct _Storage{
     Node *first;
     size_t size;
 
-    atomic_ullong increasing_iter_counter, 
-                decreasing_iter_counter, 
-                equal_iter_counter, 
-                swap_iter_counter;
+    atomic_ullong asc_order_count, 
+                desc_order_count, 
+                same_order_count, 
+                swaps_count;
 } Storage;
 
 Storage* init_storage();

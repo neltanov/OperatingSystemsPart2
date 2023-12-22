@@ -8,10 +8,10 @@ Storage* init_storage() {
     storage->size = 0;
     storage->first = NULL;
 
-    atomic_store(&storage->increasing_iter_counter, 0);
-    atomic_store(&storage->decreasing_iter_counter, 0);
-    atomic_store(&storage->equal_iter_counter, 0);
-    atomic_store(&storage->swap_iter_counter, 0);
+    atomic_store(&storage->asc_order_count, 0);
+    atomic_store(&storage->desc_order_count, 0);
+    atomic_store(&storage->same_order_count, 0);
+    atomic_store(&storage->swaps_count, 0);
 
     return storage;
 }
@@ -131,6 +131,7 @@ void *increment_asc_strings(void *arg) {
 
     while (1) {
         int asc_order_pairs = 0;
+        
         if (lock_node(storage->first)) 
             return NULL;
         Node* tmp = storage->first;
@@ -151,7 +152,7 @@ void *increment_asc_strings(void *arg) {
 
             tmp = next;
         }
-        atomic_fetch_add(&storage->increasing_iter_counter, asc_order_pairs);
+        atomic_fetch_add(&storage->asc_order_count, asc_order_pairs);
     }
     return NULL;
 }
@@ -180,7 +181,7 @@ void *increment_desc_strings(void *arg) {
 
             tmp = next;
         }
-        atomic_fetch_add(&storage->decreasing_iter_counter, desc_order_pairs);
+        atomic_fetch_add(&storage->desc_order_count, desc_order_pairs);
     }
 
     return NULL;
@@ -211,7 +212,7 @@ void *increment_equal_strings(void *arg) {
 
             tmp = next;
         }
-        atomic_fetch_add(&storage->equal_iter_counter, same_order_pairs);
+        atomic_fetch_add(&storage->same_order_count, same_order_pairs);
     }
 
     return NULL;
@@ -249,10 +250,8 @@ void *swap_nodes(void *arg) {
                 break;
             }
             else {
-                // now list is s1 -> s2 -> s3
                 if (rand() % 9 == 0) {
                     swap(s1, s2);
-                    // now list is s1 -> s3 -> s2
                     if (unlock_node(s1)) return NULL;
                     s1 = s3;
                     swap_pairs += 1;
@@ -264,7 +263,7 @@ void *swap_nodes(void *arg) {
                 }
             }
         }
-        atomic_fetch_add(&storage->swap_iter_counter, swap_pairs);
+        atomic_fetch_add(&storage->swaps_count, swap_pairs);
     }
 
     return NULL;
